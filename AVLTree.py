@@ -23,7 +23,6 @@ class AVLNode(object):
 		self.right: AVLNode = None
 		self.parent: AVLNode = None
 		self.height: int = -1
-		self.size: int = 0
 
 	"""returns whether self is not a virtual node 
 
@@ -47,6 +46,7 @@ class AVLTree(object):
 	def __init__(self):
 		self.root = None
 		self.max_node = None
+		self.size: int = 0
 
 
 	"""searches for a node in the dictionary corresponding to the key (starting at the root)
@@ -67,15 +67,18 @@ class AVLTree(object):
 		if temp_node.key == key:
 			return temp_node, e
 		return None, -1
-	
-	"""searches for a node in the dictionary corresponding to the key, starting at the max
-        
-	@type key: int
-	@param key: a key to be searched
-	@rtype: (AVLNode,int)
-	@returns: a tuple (x,e) where x is the node corresponding to key (or None if not found),
-	and e is the number of edges on the path between the starting node and ending node+1.
-	"""
+
+	def right_rotate(self, root):
+		if not root.left.is_real_node():
+			return
+		tmp = root.left.right
+		root.left.right = root
+		root.left = tmp
+	def left_rotate(self, root):
+		if not root.right.is_real_node():
+
+	def double_rotate(self, root):
+		return
 	def finger_search(self, key: int):
 		return None, -1
 	
@@ -84,9 +87,19 @@ class AVLTree(object):
 			tree.key = key
 			tree.val = val
 			tree.height = 0
-			if key > self.max_node:  # Update max node.
+
+			# Create new vnode for right
+			tree.right = AVLNode(None, None)
+			tree.right.parent = tree
+
+			# Create new vnode for left
+			tree.left = AVLNode(None, None)
+			tree.left.parent = tree
+
+			# Update max node.
+			if key > self.max_node:
 				self.max_node = tree
-			return tree, 0, 0  # No edges or rotations encountered.
+			return tree, 0, 0 # No edges or rotations encountered.
 		if key < tree.key:
 			node, edges, rotations = self.insert_node(tree.left, key, val)
 			return node, edges + 1, rotations
@@ -150,8 +163,10 @@ class AVLTree(object):
 	@pre: all keys in self are smaller than key and all keys in tree2 are larger than key,
 	or the opposite way
 	"""
-	def join(self, tree2, key, val):
-		return
+	def join(self, tree2: AVLTree, key: int, val: int):
+		curr_node: AVLNode = self.root
+		while curr_node.is_real_node() and curr_node.key > tree2.get_root().key:
+			curr_node = curr_node.left
 
 
 	"""splits the dictionary at a given node
@@ -165,7 +180,13 @@ class AVLTree(object):
 	dictionary larger than node.key.
 	"""
 	def split(self, node):
+		# Need to do join with no item in O(logk)...
 
+		# left_tree = AVLTree()
+		# right_tree = AVLTree()
+		# while node is not self.root:
+		# 	left_tree.join(node.left)
+		#
 		return None, None
 
 	
