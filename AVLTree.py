@@ -109,6 +109,8 @@ class AVLTree(object):
         return
 
     def finger_search(self, key: int):
+        node = self.max_node()
+        while node.height < 
         return None, -1
 
     def rebalance_after_insert(self, node: AVLNode):
@@ -180,19 +182,19 @@ class AVLTree(object):
             return self.root, 0, 0  # No edges or promotions done.
         return self.insert_helper(self.root, key, val)
 
-    def predeccessor(self, node: AVLNode):
-        if node.left.is_real_node():
-            node = node.left
-            while node.right.is_real_node():
-                node = node.right
-            return node
-        else:
-            while node.parent.left != node:
-                node = node.parent
-            if node.parent.left == node:
-                return node.parent
-            else:
-                return None  # No predeccessor found.
+    # def predeccessor(self, node: AVLNode):
+    #     if node.left.is_real_node():
+    #         node = node.left
+    #         while node.right.is_real_node():
+    #             node = node.right
+    #         return node
+    #     else:
+    #         while node.parent.left != node:
+    #             node = node.parent
+    #         if node.parent.left == node:
+    #             return node.parent
+    #         else:
+    #             return None  # No predecessor found.
 
     """inserts a new node into the dictionary with corresponding key and value, starting at the max
 
@@ -208,6 +210,7 @@ class AVLTree(object):
 	"""
 
     def finger_insert(self, key, val):
+        while
         return None, -1, -1
 
     """deletes node from the dictionary
