@@ -23,7 +23,7 @@ class AVLNode(object):
 		self.right = None
 		self.parent = None
 		self.height = -1
-		
+
 
 	"""returns whether self is not a virtual node 
 
@@ -31,8 +31,9 @@ class AVLNode(object):
 	@returns: False if self is a virtual node, True otherwise.
 	"""
 	def is_real_node(self):
-		return False
-
+		if self.key:
+			return False
+		return True
 
 """
 A class implementing an AVL tree.
@@ -56,7 +57,20 @@ class AVLTree(object):
 	and e is the number of edges on the path between the starting node and ending node+1.
 	"""
 	def search(self, key):
+		temp_node = self.root
+		e = 1
+		if temp_node == None:
+			return None, -1
+		while temp_node.is_real_node() and temp_node.key != key:
+			e+=1
+		if temp_node.key == key:
+			return temp_node, e
 		return None, -1
+
+
+
+
+
 
 
 	"""searches for a node in the dictionary corresponding to the key, starting at the max
