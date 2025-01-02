@@ -69,14 +69,34 @@ class AVLTree(object):
 	def right_rotate(self, root):
 		if not root.left.is_real_node():
 			return
+		parent_of_root = root.parent
 		tmp = root.left.right
+		tmp.parent = root
 		root.left.right = root
+		root.left.parent = parent_of_root
+		root.parent = root.left
 		root.left = tmp
+		if parent_of_root is None:
+			self.root = root.parent
+
 	def left_rotate(self, root):
 		if not root.right.is_real_node():
+			return
+		root_parent = root.parent
+		tmp = root.right.left
+		root.right.left = root
+		root.right.parent = root_parent
+		root.parent = root.right
+		root.right = tmp
+		root.right.parent = root
+		if root_parent is None:
+			self.root = root.parent
+
+
 
 	def double_rotate(self, root):
 		return
+
 	def finger_search(self, key: int):
 		return None, -1
 	
