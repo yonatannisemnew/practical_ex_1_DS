@@ -23,6 +23,7 @@ class AVLNode(object):
 		self.right: AVLNode = None
 		self.parent: AVLNode = None
 		self.height: int = -1
+		self.size: int = 0
 		
 
 	"""returns whether self is not a virtual node 
@@ -45,6 +46,7 @@ class AVLTree(object):
 	"""
 	def __init__(self):
 		self.root = None
+		self.max_node = None
 
 
 	"""searches for a node in the dictionary corresponding to the key (starting at the root)
@@ -74,6 +76,9 @@ class AVLTree(object):
 		if not tree.is_real_node():
 			tree.key = key
 			tree.val = val
+			tree.height = 0
+			if key > self.max_node: # Update max node.
+				self.max_node = tree
 			return tree, 0, 0 # No edges or rotations encountered.
 		if key < tree.key:
 			node, edges, rotations = self.insert_node(tree.left, key, val)
@@ -99,7 +104,7 @@ class AVLTree(object):
 		if self.root == None:
 			self.root = AVLNode(key, val)
 			return self.root, 0, 0 # No edges or promotions done.
-		return self.insert_helper(key, val)
+		return self.insert_helper(self.root, key, val)
 
 
 	"""inserts a new node into the dictionary with corresponding key and value, starting at the max
@@ -124,7 +129,7 @@ class AVLTree(object):
 	@pre: node is a real pointer to a node in self
 	"""
 	def delete(self, node):
-		return	
+		return
 
 	
 	"""joins self with item and another AVLTree
@@ -156,13 +161,23 @@ class AVLTree(object):
 		return None, None
 
 	
+	def avl_to_array_helper(self, tree: AVLNode, lst):
+		# Traverse the tree in-order.
+		if tree.is_real_node():
+			self.avl_to_array_helper(tree.left, lst)
+			lst.append((tree.key, tree.val))
+			self.avl_to_array_helper(tree.right, lst)
+	
+
 	"""returns an array representing dictionary 
 
 	@rtype: list
 	@returns: a sorted list according to key of touples (key, value) representing the data structure
 	"""
 	def avl_to_array(self):
-		return None
+		lst = []
+		self.avl_to_array_helper(self.root, lst)
+		return lst
 
 
 	"""returns the node with the maximal key in the dictionary
@@ -171,7 +186,7 @@ class AVLTree(object):
 	@returns: the maximal node, None if the dictionary is empty
 	"""
 	def max_node(self):
-		return None
+		return self.max_node
 
 	"""returns the number of items in dictionary 
 
@@ -179,7 +194,7 @@ class AVLTree(object):
 	@returns: the number of items in dictionary 
 	"""
 	def size(self):
-		return -1	
+		return self.root.size
 
 
 	"""returns the root of the tree representing the dictionary
@@ -188,4 +203,4 @@ class AVLTree(object):
 	@returns: the root, None if the dictionary is empty
 	"""
 	def get_root(self):
-		return None
+		return self.root
