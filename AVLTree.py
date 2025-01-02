@@ -110,7 +110,6 @@ class AVLTree(object):
 			tree.left = AVLNode(None, None)
 			return tree, 0, 0 # No edges or rotations encountered.
 		if key < tree.key:
-			node, edges, rotations = self.insert_node(tree.left, key, val)
 			return node, edges + 1, rotations
 		# We assume no key appears twice.
 		node, edges, rotations = self.insert_node(tree.right, key, val)
