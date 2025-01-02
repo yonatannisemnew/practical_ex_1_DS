@@ -65,15 +65,18 @@ class AVLTree(object):
 		if temp_node.key == key:
 			return temp_node, e
 		return None, -1
-	
-	"""searches for a node in the dictionary corresponding to the key, starting at the max
-        
-	@type key: int
-	@param key: a key to be searched
-	@rtype: (AVLNode,int)
-	@returns: a tuple (x,e) where x is the node corresponding to key (or None if not found),
-	and e is the number of edges on the path between the starting node and ending node+1.
-	"""
+
+	def right_rotate(self, root):
+		if not root.left.is_real_node():
+			return
+		tmp = root.left.right
+		root.left.right = root
+		root.left = tmp
+	def left_rotate(self, root):
+		if not root.right.is_real_node():
+
+	def double_rotate(self, root):
+		return
 	def finger_search(self, key: int):
 		return None, -1
 	
@@ -81,6 +84,8 @@ class AVLTree(object):
 		if not tree.is_real_node():
 			tree.key = key
 			tree.val = val
+			tree.right = AVLNode(None, None)
+			tree.left = AVLNode(None, None)
 			return tree, 0, 0 # No edges or rotations encountered.
 		if key < tree.key:
 			node, edges, rotations = self.insert_node(tree.left, key, val)
