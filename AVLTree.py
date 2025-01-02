@@ -24,16 +24,16 @@ class AVLNode(object):
 		self.parent: AVLNode = None
 		self.height: int = -1
 		self.size: int = 0
-		
 
 	"""returns whether self is not a virtual node 
 
 	@rtype: bool
 	@returns: False if self is a virtual node, True otherwise.
 	"""
-	def is_real_node(self) -> bool:
-		return False
-
+	def is_real_node(self):
+		if self.key:
+			return False
+		return True
 
 """
 A class implementing an AVL tree.
@@ -58,9 +58,16 @@ class AVLTree(object):
 	and e is the number of edges on the path between the starting node and ending node+1.
 	"""
 	def search(self, key):
+		temp_node = self.root
+		e = 1
+		if temp_node is None:
+			return None, -1
+		while temp_node.is_real_node() and temp_node.key != key:
+			e += 1
+		if temp_node.key == key:
+			return temp_node, e
 		return None, -1
-
-
+	
 	"""searches for a node in the dictionary corresponding to the key, starting at the max
         
 	@type key: int
@@ -77,9 +84,9 @@ class AVLTree(object):
 			tree.key = key
 			tree.val = val
 			tree.height = 0
-			if key > self.max_node: # Update max node.
+			if key > self.max_node:  # Update max node.
 				self.max_node = tree
-			return tree, 0, 0 # No edges or rotations encountered.
+			return tree, 0, 0  # No edges or rotations encountered.
 		if key < tree.key:
 			node, edges, rotations = self.insert_node(tree.left, key, val)
 			return node, edges + 1, rotations
@@ -101,7 +108,7 @@ class AVLTree(object):
 	and h is the number of PROMOTE cases during the AVL rebalancing
 	"""
 	def insert(self, key: int, val: int):
-		if self.root == None:
+		if self.root is None:
 			self.root = AVLNode(key, val)
 			return self.root, 0, 0 # No edges or promotions done.
 		return self.insert_helper(self.root, key, val)
@@ -158,6 +165,7 @@ class AVLTree(object):
 	dictionary larger than node.key.
 	"""
 	def split(self, node):
+
 		return None, None
 
 	
