@@ -151,6 +151,8 @@ class AVLTree(object):
             if tree.parent.height == tree.height:
                 tree.parent.height += 1
 
+            self.rebalance_after_insert(tree)
+            self.size += 1  # New node added
             return tree, 0, 0  # No edges or rotations encountered.
         if key < tree.key:
             node, edges, rotations = self.insert_node(tree.left, key, val)
@@ -177,6 +179,20 @@ class AVLTree(object):
             self.root = AVLNode(key, val)
             return self.root, 0, 0  # No edges or promotions done.
         return self.insert_helper(self.root, key, val)
+
+    def predeccessor(self, node: AVLNode):
+        if node.left.is_real_node():
+            node = node.left
+            while node.right.is_real_node():
+                node = node.right
+            return node
+        else:
+            while node.parent.left != node:
+                node = node.parent
+            if node.parent.left == node:
+                return node.parent
+            else:
+                return None  # No predeccessor found.
 
     """inserts a new node into the dictionary with corresponding key and value, starting at the max
 
@@ -217,8 +233,10 @@ class AVLTree(object):
 
     def join(self, tree2: AVLTree, key: int, val: int):
         curr_node: AVLNode = self.root
-        while curr_node.is_real_node() and curr_node.key > tree2.get_root().key:
-            curr_node = curr_node.left
+        if self.size() > tree2.size():
+            while curr_node.is_real_node() and curr_node.key > tree2.get_root().key:
+                curr_node = curr_node.left
+
 
     """splits the dictionary at a given node
 
