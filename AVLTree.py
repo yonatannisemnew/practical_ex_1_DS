@@ -1,9 +1,9 @@
 #id1:329371967
 #name1:Yonatan Nissenboym
 #username1:
-#id2:
-#name2:
-#username2:
+#id2:216083329
+#name2:Ilai Shoshani
+#username2:ilaishoshani
 
 
 """A class represnting a node in an AVL tree"""
@@ -17,12 +17,12 @@ class AVLNode(object):
 	@param value: data of your node
 	"""
 	def __init__(self, key, value):
-		self.key = key
-		self.value = value
-		self.left = None
-		self.right = None
-		self.parent = None
-		self.height = -1
+		self.key: int = key
+		self.value: int = value
+		self.left: AVLNode = None
+		self.right: AVLNode = None
+		self.parent: AVLNode = None
+		self.height: int = -1
 		
 
 	"""returns whether self is not a virtual node 
@@ -30,7 +30,7 @@ class AVLNode(object):
 	@rtype: bool
 	@returns: False if self is a virtual node, True otherwise.
 	"""
-	def is_real_node(self):
+	def is_real_node(self) -> bool:
 		return False
 
 
@@ -67,8 +67,20 @@ class AVLTree(object):
 	@returns: a tuple (x,e) where x is the node corresponding to key (or None if not found),
 	and e is the number of edges on the path between the starting node and ending node+1.
 	"""
-	def finger_search(self, key):
+	def finger_search(self, key: int):
 		return None, -1
+	
+	def insert_helper(self, tree: AVLNode, key: int, val: int):
+		if not tree.is_real_node():
+			tree.key = key
+			tree.val = val
+			return tree, 0, 0 # No edges or rotations encountered.
+		if key < tree.key:
+			node, edges, rotations = self.insert_node(tree.left, key, val)
+			return node, edges + 1, rotations
+		# We assume no key appears twice.
+		node, edges, rotations = self.insert_node(tree.right, key, val)
+		return node, edges + 1, rotations
 
 
 	"""inserts a new node into the dictionary with corresponding key and value (starting at the root)
@@ -83,8 +95,11 @@ class AVLTree(object):
 	e is the number of edges on the path between the starting node and new node before rebalancing,
 	and h is the number of PROMOTE cases during the AVL rebalancing
 	"""
-	def insert(self, key, val):
-		return None, -1, -1
+	def insert(self, key: int, val: int):
+		if self.root == None:
+			self.root = AVLNode(key, val)
+			return self.root, 0, 0 # No edges or promotions done.
+		return self.insert_helper(key, val)
 
 
 	"""inserts a new node into the dictionary with corresponding key and value, starting at the max
