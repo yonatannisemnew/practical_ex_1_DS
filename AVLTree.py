@@ -91,11 +91,13 @@ class AVLTree(object):
 		root.right.parent = root
 		if root_parent is None:
 			self.root = root.parent
-
-
-
-	def double_rotate(self, root):
+	def left_then_right_rotate(self, root):
+		self.left_rotate(root.left)
+		self.right_rotate(root.parent.parent)
 		return
+	def right_then_left_rotate(self, root):
+		self.right_rotate(root.right)
+		self.left_rotate(root.parent.parent)
 
 	def finger_search(self, key: int):
 		return None, -1
