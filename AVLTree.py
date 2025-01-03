@@ -5,6 +5,9 @@
 # name2:Ilai Shoshani
 # username2:ilaishoshani
 
+from math import log, sqrt
+
+PHI = (1+sqrt(5))/2
 
 """A class represnting a node in an AVL tree"""
 
@@ -20,7 +23,7 @@ class AVLNode(object):
 
     def __init__(self, key, value):
         self.key: int = key
-        self.value: int = value
+        self.value: str = value
         self.left: AVLNode = None
         self.right: AVLNode = None
         self.parent: AVLNode = None
@@ -33,9 +36,7 @@ class AVLNode(object):
     """
 
     def is_real_node(self):
-        if self.key:
-            return False
-        return True
+        return self.key is not None
 
     def balance_factor(self):
         return self.left.height - self.right.height
@@ -44,8 +45,6 @@ class AVLNode(object):
 """
 A class implementing an AVL tree.
 """
-
-
 class AVLTree(object):
     """
     Constructor, you are allowed to add more fields.
@@ -88,6 +87,7 @@ class AVLTree(object):
         root.left = tmp
         if parent_of_root is None:
             self.root = root.parent
+        return root.parent
 
     def left_rotate(self, root):
         if not root.right.is_real_node():
@@ -101,37 +101,49 @@ class AVLTree(object):
         root.right.parent = root
         if root_parent is None:
             self.root = root.parent
+        return root.parent
 
     def left_then_right_rotate(self, root):
-        return
+        self.left_rotate(root.left)
+        return self.right_rotate(root)
 
     def right_then_left_rotate(self, root):
-        return
+        self.right_rotate(root.right)
+        return self.left_rotate(root)
 
     def finger_search(self, key: int):
-        node = self.max_node()
-        while node.height <
-            return None, -1
+        max_node: AVLNode = self.max_node()
+        curr_node: AVLNode = max_node
+        calc_size = log(PHI, key)
+        while curr_node.height < calc_size and curr_node != self.root:
+            curr_node = curr_node.parent
+
+        # Search for the node in the subtree and add the diff we traveled to the edge count.
+        x, e = self.search(key)
+        return x, e + (curr_node.height - max_node.height)
 
     def rebalance_after_insert(self, node: AVLNode):
         if node.parent is None:
-            return
+            return 0
 
         if node.parent.height == node.height:
             node.parent.height += 1
-            rebalance_after_insert(node.parent)
-        elif node.parent.balance_factor() == -2:  # Right subtree too large
+            return self.rebalance_after_insert(node.parent) + 1
+        if node.parent.balance_factor() == -2:  # Right subtree too large
             if node.balance_factor() > 0:  # Right subtree is pretty small, can be added a node.
                 self.right_rotate(node.parent)
             else:
                 self.left_then_right_rotate(node.parent)
-        elif node.parent.balance_factor() == 2:  # Left subtree too large
+            return 1
+        if node.parent.balance_factor() == 2:  # Left subtree too large
             if node.balance_factor() < 0:  # Left subtree is pretty small, can be added a node.
                 self.left_rotate(node.parent)
             else:
                 self.right_then_left_rotate(node.parent)
+            return 1
+        return 0
 
-    def insert_helper(self, tree: AVLNode, key: int, val: int):
+    def insert_helper(self, tree: AVLNode, key: int, val: str):
         if not tree.is_real_node():
             tree.key = key
             tree.val = val
@@ -153,14 +165,14 @@ class AVLTree(object):
             if tree.parent.height == tree.height:
                 tree.parent.height += 1
 
-            self.rebalance_after_insert(tree)
+            rotations = self.rebalance_after_insert(tree)
             self.size += 1  # New node added
-            return tree, 0, 0  # No edges or rotations encountered.
+            return tree, 0, rotations  # No edges encountered.
         if key < tree.key:
-            node, edges, rotations = self.insert_node(tree.left, key, val)
+            node, edges, rotations = self.insert_helper(tree.left, key, val)
             return node, edges + 1, rotations
         # We assume no key appears twice.
-        node, edges, rotations = self.insert_node(tree.right, key, val)
+        node, edges, rotations = self.insert_helper(tree.right, key, val)
         return node, edges + 1, rotations
 
     """inserts a new node into the dictionary with corresponding key and value (starting at the root)
@@ -176,25 +188,27 @@ class AVLTree(object):
     and h is the number of PROMOTE cases during the AVL rebalancing
     """
 
-    def insert(self, key: int, val: int):
+    def insert(self, key: int, val: str):
         if self.root is None:
             self.root = AVLNode(key, val)
             return self.root, 0, 0  # No edges or promotions done.
         return self.insert_helper(self.root, key, val)
 
-    # def predeccessor(self, node: AVLNode):
-    #     if node.left.is_real_node():
-    #         node = node.left
-    #         while node.right.is_real_node():
-    #             node = node.right
-    #         return node
-    #     else:
-    #         while node.parent.left != node:
-    #             node = node.parent
-    #         if node.parent.left == node:
-    #             return node.parent
-    #         else:
-    #             return None  # No predecessor found.
+    @staticmethod
+    def successor(node: AVLNode):
+        if node.right.is_real_node():
+            node = node.right
+            while node.left.is_real_node():
+                node = node.left
+            return node
+        else:
+            # Go up while we are still going left (we were on the right)
+            while node.parent.right == node:
+                node = node.parent
+            if node.parent.right == node:
+                return node.parent
+            else:
+                return None  # No successor found.
 
     """inserts a new node into the dictionary with corresponding key and value, starting at the max
 
@@ -210,8 +224,16 @@ class AVLTree(object):
     """
 
     def finger_insert(self, key, val):
-        while
-            return None, -1, -1
+        max_node: AVLNode = self.max_node()
+        curr_node: AVLNode = max_node
+        calc_size = log(PHI, key)
+        while curr_node.height < calc_size and curr_node != self.root:
+            curr_node = curr_node.parent
+        # Do I need to check the case where there is no root node?
+
+        # Insert the node and add the amount of edges we traveled to the edge count.
+        x, e, h = self.insert_helper(curr_node, key, val)
+        return x, e + (curr_node.height - max_node.height), h
 
     """deletes node from the dictionary
 
@@ -234,11 +256,12 @@ class AVLTree(object):
     or the opposite way
     """
 
-    def join(self, tree2: AVLTree, key: int, val: int):
-        curr_node: AVLNode = self.root
-        if self.size() > tree2.size():
-            while curr_node.is_real_node() and curr_node.key > tree2.get_root().key:
-                curr_node = curr_node.left
+    def join(self, tree2, key: int, val: int):
+        # curr_node: AVLNode = self.root
+        # if self.size() > tree2.size():
+        #     while curr_node.is_real_node() and curr_node.key > tree2.get_root().key:
+        #         curr_node = curr_node.left
+        pass
 
     """splits the dictionary at a given node
 
@@ -265,7 +288,7 @@ class AVLTree(object):
         # Traverse the tree in-order.
         if tree.is_real_node():
             self.avl_to_array_helper(tree.left, lst)
-            lst.append((tree.key, tree.val))
+            lst.append((tree.key, tree.value))
             self.avl_to_array_helper(tree.right, lst)
 
     """returns an array representing dictionary 
@@ -305,3 +328,14 @@ class AVLTree(object):
 
     def get_root(self):
         return self.root
+
+
+def main():
+    tree = AVLTree()
+    print(tree.insert(1, "ilai"))
+    print(tree.insert(2, "ilai2"))
+    print(tree.insert(3, "ilai3"))
+    print(tree.insert(5, "yohnatan-"))
+
+
+main()
