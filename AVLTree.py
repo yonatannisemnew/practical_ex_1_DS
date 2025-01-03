@@ -21,7 +21,7 @@ class AVLNode(object):
     @param value: data of your node
     """
 
-    def __init__(self, key, value):
+    def __init__(self, key=None, value=None):
         self.key: int = key
         self.value: str = value
         self.left: AVLNode = None
@@ -40,6 +40,9 @@ class AVLNode(object):
 
     def balance_factor(self):
         return self.left.height - self.right.height
+
+    def __repr__(self):
+        return f"Node[{self.key}, {self.value}]"
 
 
 """
@@ -76,6 +79,7 @@ class AVLTree(object):
         return None, -1
 
     def right_rotate(self, root):
+        print("Right Rotate:", root)
         if not root.left.is_real_node():
             return
         parent_of_root = root.parent
@@ -90,6 +94,7 @@ class AVLTree(object):
         return root.parent
 
     def left_rotate(self, root):
+        print("Left Rotate:", root)
         if not root.right.is_real_node():
             return
         root_parent = root.parent
@@ -111,60 +116,58 @@ class AVLTree(object):
         self.right_rotate(root.right)
         return self.left_rotate(root)
 
-    def finger_search(self, key: int):
-        max_node: AVLNode = self.max_node()
-        curr_node: AVLNode = max_node
-        calc_size = log(PHI, key)
-        while curr_node.height < calc_size and curr_node != self.root:
-            curr_node = curr_node.parent
-
-        # Search for the node in the subtree and add the diff we traveled to the edge count.
-        x, e = self.search(key)
-        return x, e + (curr_node.height - max_node.height)
-
     def rebalance_after_insert(self, node: AVLNode):
         if node.parent is None:
             return 0
 
         if node.parent.height == node.height:
             node.parent.height += 1
-            return self.rebalance_after_insert(node.parent) + 1
+            return self.rebalance_after_insert(node.parent) # Propegate Up.
         if node.parent.balance_factor() == -2:  # Right subtree too large
             if node.balance_factor() > 0:  # Right subtree is pretty small, can be added a node.
+                node.parent.height -= 1
                 self.right_rotate(node.parent)
             else:
+                node.parent.height -= 1
+                node.height -= 1
+                node.right.height += 1
                 self.left_then_right_rotate(node.parent)
             return 1
         if node.parent.balance_factor() == 2:  # Left subtree too large
             if node.balance_factor() < 0:  # Left subtree is pretty small, can be added a node.
+                node.parent.height -= 1
                 self.left_rotate(node.parent)
             else:
+                node.parent.height -= 1
+                node.height -= 1
+                node.left.height += 1
                 self.right_then_left_rotate(node.parent)
             return 1
         return 0
 
+    def make_real(self, node: AVLNode, key: int, value: str):
+        # Make the given node into a real node.
+        node.key = key
+        node.value = value
+        node.height = 0
+
+        # Create new vnodes for right and left
+        node.right = self.make_vnode(node)
+        node.left = self.make_vnode(node)
+        return node
+
+    def make_vnode(self, parent: AVLNode):
+        node = AVLNode(None, None)
+        node.parent = parent
+        return node
+
     def insert_helper(self, tree: AVLNode, key: int, val: str):
         if not tree.is_real_node():
-            tree.key = key
-            tree.val = val
-            tree.height = 0
-
-            # Create new vnode for right
-            tree.right = AVLNode(None, None)
-            tree.right.parent = tree
-
-            # Create new vnode for left
-            tree.left = AVLNode(None, None)
-            tree.left.parent = tree
+            self.make_real(tree, key, val)
 
             # Update max node.
-            if key > self.max_node:
+            if key > self.max_node.key:
                 self.max_node = tree
-
-            # Handle rebalancing:
-            if tree.parent.height == tree.height:
-                tree.parent.height += 1
-
             rotations = self.rebalance_after_insert(tree)
             self.size += 1  # New node added
             return tree, 0, rotations  # No edges encountered.
@@ -190,7 +193,7 @@ class AVLTree(object):
 
     def insert(self, key: int, val: str):
         if self.root is None:
-            self.root = AVLNode(key, val)
+            self.max_node = self.root = self.make_real(AVLNode(), key, val)
             return self.root, 0, 0  # No edges or promotions done.
         return self.insert_helper(self.root, key, val)
 
@@ -210,6 +213,19 @@ class AVLTree(object):
             else:
                 return None  # No successor found.
 
+    def finger_search(self, key: int):
+        if self.root is None:
+            return None, 1
+        max_node: AVLNode = self.max_node()
+        curr_node: AVLNode = max_node
+        calc_size = log(PHI, key)
+        while curr_node.height < calc_size and curr_node != self.root:
+            curr_node = curr_node.parent
+
+        # Search for the node in the subtree and add the diff we traveled to the edge count.
+        x, e = self.search(key)
+        return x, e + (curr_node.height - max_node.height)
+
     """inserts a new node into the dictionary with corresponding key and value, starting at the max
 
     @type key: int
@@ -224,12 +240,14 @@ class AVLTree(object):
     """
 
     def finger_insert(self, key, val):
+        if self.root is None:
+            self.max_node = self.root = self.make_real(AVLNode(), key, val)
+            return self.root, 0, 0  # No edges or promotions done.
         max_node: AVLNode = self.max_node()
         curr_node: AVLNode = max_node
         calc_size = log(PHI, key)
         while curr_node.height < calc_size and curr_node != self.root:
             curr_node = curr_node.parent
-        # Do I need to check the case where there is no root node?
 
         # Insert the node and add the amount of edges we traveled to the edge count.
         x, e, h = self.insert_helper(curr_node, key, val)
@@ -333,9 +351,11 @@ class AVLTree(object):
 def main():
     tree = AVLTree()
     print(tree.insert(1, "ilai"))
-    print(tree.insert(2, "ilai2"))
-    print(tree.insert(3, "ilai3"))
     print(tree.insert(5, "yohnatan-"))
+    print(tree.insert(3, "ilai3"))
+    print(tree.insert(2, "ilai2"))
+
+    print(tree.avl_to_array())
 
 
 main()
