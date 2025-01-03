@@ -58,6 +58,18 @@ class AVLTree(object):
         self.max_node = None
         self.size: int = 0
 
+    def search_helper(self, tree: AVLNode, key: int):
+        if tree is None or not tree.is_real_node():  # Key doesn't exist.
+            return None, 0
+        if key == tree.key:  # We Found It!
+            return tree, 0
+        if key < tree.key:  # Search Left
+            node, edges = self.search_helper(tree.left, key)
+            return node, edges + 1
+        if key > tree.key:  # Search Right
+            node, edges = self.search_helper(tree.right, key)
+            return node, edges + 1
+
     """searches for a node in the dictionary corresponding to the key (starting at the root)
 
     @type key: int
@@ -66,17 +78,8 @@ class AVLTree(object):
     @returns: a tuple (x,e) where x is the node corresponding to key (or None if not found),
     and e is the number of edges on the path between the starting node and ending node+1.
     """
-
-    def search(self, key):
-        temp_node = self.root
-        e = 1
-        if temp_node is None:
-            return None, -1
-        while temp_node.is_real_node() and temp_node.key != key:
-            e += 1
-        if temp_node.key == key:
-            return temp_node, e
-        return None, -1
+    def search(self, key: int):
+        return self.search_helper(self.root, key)
 
     def right_rotate(self, root):
         print("Right Rotate:", root)
@@ -223,7 +226,7 @@ class AVLTree(object):
             curr_node = curr_node.parent
 
         # Search for the node in the subtree and add the diff we traveled to the edge count.
-        x, e = self.search(key)
+        x, e = self.search_helper(curr_node, key)
         return x, e + (curr_node.height - max_node.height)
 
     """inserts a new node into the dictionary with corresponding key and value, starting at the max
@@ -274,7 +277,12 @@ class AVLTree(object):
     or the opposite way
     """
 
-    def join(self, tree2, key: int, val: int):
+    def join_with_subtree(self, subtree: AVLNode, join_node: AVLNode):
+        # TODO: Implement. The given node can be virtual - so we need to not do anything if it is.
+        # (The subtree can be a virtual node)
+        pass
+
+    def join(self, tree2, key: int, val: str):
         # curr_node: AVLNode = self.root
         # if self.size() > tree2.size():
         #     while curr_node.is_real_node() and curr_node.key > tree2.get_root().key:
@@ -293,18 +301,22 @@ class AVLTree(object):
     """
 
     def split(self, node):
-        # Need to do join with no item in O(logk)...
+        left_tree = AVLTree()
+        right_tree = AVLTree()
 
-        # left_tree = AVLTree()
-        # right_tree = AVLTree()
-        # while node is not self.root:
-        # 	left_tree.join(node.left)
-        #
-        return None, None
+        left_tree.join_with_subtree(node.left, node)
+        right_tree.join_with_subtree(node.left, node)
+        while node is not self.root:
+            if node.parent.left != node:  # We have lower stuff to add.
+                left_tree.join_with_subtree(node.left, node)
+            elif node.parent.right != node:  # We have higher stuff to add.
+                right_tree.join_with_subtree(node.left, node)
+            node = node.parent
+        return left_tree, right_tree
 
     def avl_to_array_helper(self, tree: AVLNode, lst):
         # Traverse the tree in-order.
-        if tree.is_real_node():
+        if tree is not None and tree.is_real_node():
             self.avl_to_array_helper(tree.left, lst)
             lst.append((tree.key, tree.value))
             self.avl_to_array_helper(tree.right, lst)
@@ -354,8 +366,16 @@ def main():
     print(tree.insert(5, "yohnatan-"))
     print(tree.insert(3, "ilai3"))
     print(tree.insert(2, "ilai2"))
+    print(tree.insert(10, "not ilai"))
+    print(tree.insert(50, "not yohnatan-"))
+    print(tree.insert(30, "not ilai3"))
+    print(tree.insert(20, "not ilai2"))
 
     print(tree.avl_to_array())
+    node10, edges = tree.search(10)
+    print("Node #10:", node10, edges)
+    left, right = tree.split(node10)
+    print("\nLeft", left.avl_to_array(), "\nRight", right.avl_to_array(), sep="\n")
 
 
 main()
