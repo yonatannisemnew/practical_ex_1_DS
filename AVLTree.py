@@ -87,33 +87,62 @@ class AVLTree(object):
 
     def right_rotate(self, root):
         print("Right Rotate:", root)
+
+        # Ensure there is a left child to rotate
         if not root.left.is_real_node():
             return
+
+        # Identify nodes involved in rotation
+        new_root = root.left
         parent_of_root = root.parent
-        tmp = root.left.right
-        tmp.parent = root
-        root.left.right = root
-        root.left.parent = parent_of_root
-        root.parent = root.left
-        root.left = tmp
+        root.left = new_root.right
+
+        # Update parent of the subtree being rotated
+        if new_root.right and new_root.right.is_real_node():
+            new_root.right.parent = root
+
+        # Perform rotation
+        new_root.right = root
+        root.parent = new_root
+
+        # Update the parent of the new root
+        new_root.parent = parent_of_root
         if parent_of_root is None:
-            self.root = root.parent
-        return root.parent
+            self.root = new_root  # Update tree root if root was the root of the tree
+        else:
+            # Attach new root to the appropriate parent child
+            if parent_of_root.left == root:
+                parent_of_root.left = new_root
+            else:
+                parent_of_root.right = new_root
+        root.height = max(root.left.height if root.left else -1, root.right.height if root.right else -1) + 1
+        new_root.height = max(new_root.left.height if new_root.left else -1, root.height) + 1
+        return new_root
 
     def left_rotate(self, root):
         print("Left Rotate:", root)
         if not root.right.is_real_node():
             return
         root_parent = root.parent
-        tmp = root.right.left
-        root.right.left = root
-        root.right.parent = root_parent
-        root.parent = root.right
+        new_root = root.right
+        tmp = new_root.left
+        new_root.left = root
+        new_root.parent = root_parent
         root.right = tmp
-        root.right.parent = root
+        root.parent = new_root
+        if tmp:
+            tmp.parent = root
         if root_parent is None:
-            self.root = root.parent
-        return root.parent
+            self.root = new_root
+        else:
+            if root_parent.left == root:
+                root_parent.left = new_root
+            else:
+                root_parent.right = new_root
+        # Update heights
+        root.height = max(root.left.height, root.right.height) + 1
+        new_root.height = max(new_root.left.height, new_root.right.height) + 1
+        return new_root
 
     def left_then_right_rotate(self, root):
         self.left_rotate(root.left)
