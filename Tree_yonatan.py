@@ -60,7 +60,7 @@ class AVLTree(object):
 
     def __init__(self):
         self.root = None
-        self.max_node = None
+        self.max = None
         self.size: int = 0
 
     def search_helper(self, tree: AVLNode, key: int):
@@ -179,8 +179,8 @@ class AVLTree(object):
             self.make_real(tree, key, val)
 
             # Update max node.
-            if key > self.max_node.key:
-                self.max_node = tree
+            if key > self.max.key:
+                self.max = tree
             rotations = self.rebalance_after_insert(tree)
             self.size += 1  # New node added
             return tree, 0, rotations  # No edges encountered.
@@ -205,14 +205,14 @@ class AVLTree(object):
     """
     def insert(self, key: int, val: str):
         if self.root is None:
-            self.max_node = self.root = self.make_real(AVLNode(), key, val)
+            self.max = self.root = self.make_real(AVLNode(), key, val)
             return self.root, 0, 0  # No edges or promotions done.
         return self.insert_helper(self.root, key, val)
 
     def finger_search(self, key: int):
         if self.root is None:
             return None, 1
-        max_node: AVLNode = self.max_node()
+        max_node: AVLNode = self.max()
         curr_node: AVLNode = max_node
         calc_size = log(PHI, key)
         while curr_node.height < calc_size and curr_node != self.root:
@@ -236,9 +236,9 @@ class AVLTree(object):
     """
     def finger_insert(self, key, val):
         if self.root is None:
-            self.max_node = self.root = self.make_real(AVLNode(), key, val)
+            self.max = self.root = self.make_real(AVLNode(), key, val)
             return self.root, 0, 0  # No edges or promotions done.
-        max_node: AVLNode = self.max_node()
+        max_node: AVLNode = self.max()
         curr_node: AVLNode = max_node
         calc_size = log(PHI, key)
         while curr_node.height < calc_size and curr_node != self.root:
@@ -293,8 +293,8 @@ class AVLTree(object):
             self.delete(self.successor(node))
             return
         self.size -= 1
-        if self.max_node == node:
-            self.max_node = self.predecessor(self.max_node)
+        if self.max == node:
+            self.max = self.predecessor(self.max)
 
         """
         Now we can assume node has 0 or 1 children.
@@ -338,18 +338,19 @@ class AVLTree(object):
     @pre: all keys in self are smaller than key and all keys in tree2 are larger than key,
     or the opposite way
     """
-    def join_helper(self, tree1,tree2, key: int, val: str):
-        return tree1.join_with_subtree(tree2, key, val)
+    def join(self, tree2, key: int, val: str):
+        self.join_with_subtree(tree2, key, val)
+        self.max = max(self.max, tree2.max, key)
 
-    # this is the case when the main tree is larger
-    def join(self, tree2: AVLTree, key: int, val: str):
-        main_tree_root: AVLNode = self.root
-        join_tree_root: AVLNode = t.root()
-        if (join_tree_root is None) or (not join_tree_root.is_real_node()):
-            return
-        if (join_tree_root is None) or (not main_tree_root.is_real_node()):
-            self.root = join_tree_root
-            return
+    def find_max(self):
+        curr_node: AVLNode = self.root
+
+        # We assume we were not given a virt node.
+        if not curr_node.is_real_node():
+            return -1
+        while curr_node.right.is_real_node():
+            curr_node = curr_node.right
+        return curr_node
 
 
     """splits the dictionary at a given node
@@ -370,11 +371,13 @@ class AVLTree(object):
         left_tree.join_with_subtree(node.left, node.key, node.val)
         right_tree.join_with_subtree(node.left, node.key, node.val)
         while node is not self.root:
-            if node.parent.left != node:  # We have lower stuff to add.
+            if node.parent.left != node:     # We have lower stuff to add.
                 left_tree.join_with_subtree(node.left, node.key, node.val)
             elif node.parent.right != node:  # We have higher stuff to add.
                 right_tree.join_with_subtree(node.left, node.key, node.val)
             node = node.parent
+        left_tree.max = self.find_max()   # Update Max
+        right_tree.max = self.find_max()  # Update Max
         return left_tree, right_tree
 
     def avl_to_array_helper(self, tree: AVLNode, lst):
@@ -400,7 +403,7 @@ class AVLTree(object):
     @returns: the maximal node, None if the dictionary is empty
     """
     def max_node(self):
-        return self.max_node
+        return self.max
 
     """returns the number of items in dictionary 
 
