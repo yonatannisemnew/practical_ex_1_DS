@@ -303,10 +303,29 @@ class AVLTree(object):
         """
         self.balance_deletion(node)
 
-    def join_with_subtree(self, subtree: AVLNode, join_node: AVLNode):
-        # TODO: Implement. The given node can be virtual - so we need to not do anything if it is.
-        # (The subtree can be a virtual node)
-        pass
+    def join_with_subtree(self, subtree: AVLNode, key: int, val: str):
+        if not subtree.is_real_node():
+            self.insert(key, val)
+            return self
+        small_tree, big_tree = (subtree, self.root) if subtree.height < self.size else (self.root, subtree)
+        curr_node = big_tree
+        if key <= big_tree.key:
+            while curr_node.left.is_real_node() and curr_node.height > small_tree.height:
+                curr_node = curr_node.left
+            new_node = AVLNode(key, val)
+            new_node.right = curr_node.left
+            new_node.left = small_tree
+            curr_node.left = new_node
+            self.rebalance_after_insert(curr_node)
+        else:
+            while curr_node.right.is_real_node() and curr_node.height > small_tree.height:
+                curr_node = curr_node.right
+            new_node = AVLNode(key, val)
+            new_node.left = curr_node.right
+            new_node.right = small_tree
+            curr_node.right = new_node
+            self.rebalance_after_insert(curr_node)
+        return big_tree
 
     """joins self with item and another AVLTree
 
@@ -319,13 +338,8 @@ class AVLTree(object):
     @pre: all keys in self are smaller than key and all keys in tree2 are larger than key,
     or the opposite way
     """
-    def join_helper(self, tree1: AVLTree,tree2: AVLTree, key: int, val: str):
-        main_root: AVLNode = tree1.root
-        joined_root: AVLNode = tree2.root
-        if main_root.key < joined_root.key:
-            pass
-        else:
-            pass
+    def join_helper(self, tree1,tree2, key: int, val: str):
+        return tree1.join_with_subtree(tree2, key, val)
 
     # this is the case when the main tree is larger
     def join(self, tree2: AVLTree, key: int, val: str):
@@ -353,13 +367,13 @@ class AVLTree(object):
         left_tree = AVLTree()
         right_tree = AVLTree()
 
-        left_tree.join_with_subtree(node.left, node)
-        right_tree.join_with_subtree(node.left, node)
+        left_tree.join_with_subtree(node.left, node.key, node.val)
+        right_tree.join_with_subtree(node.left, node.key, node.val)
         while node is not self.root:
             if node.parent.left != node:  # We have lower stuff to add.
-                left_tree.join_with_subtree(node.left, node)
+                left_tree.join_with_subtree(node.left, node.key, node.val)
             elif node.parent.right != node:  # We have higher stuff to add.
-                right_tree.join_with_subtree(node.left, node)
+                right_tree.join_with_subtree(node.left, node.key, node.val)
             node = node.parent
         return left_tree, right_tree
 

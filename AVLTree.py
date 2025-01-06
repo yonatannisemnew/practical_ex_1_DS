@@ -396,6 +396,8 @@ class AVLTree(object):
             elif node.parent.right != node:  # We have higher stuff to add.
                 right_tree.join_with_subtree(node.left, node)
             node = node.parent
+
+        # TODO: Update self.max_node by searching for it
         return left_tree, right_tree
 
     def avl_to_array_helper(self, tree: AVLNode, lst):
