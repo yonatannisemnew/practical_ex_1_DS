@@ -311,6 +311,23 @@ class AVLTree(object):
     def balance_deletion(self, node: AVLNode):
         pass
 
+    def replace(self, to_replace: AVLNode, node: AVLNode):
+        if to_replace.parent is not None:
+            if to_replace.parent.right == to_replace:
+                to_replace.parent.right = node
+            else:
+                to_replace.parent.left = node
+
+        if node.parent is not None:
+            if node.parent.right == node:
+                node.parent.right = to_replace
+            else:
+                node.parent.left = to_replace
+
+        node.parent, to_replace.parent = to_replace.parent, node.parent
+        node.left, to_replace.left = to_replace.left, node.left
+        node.right, to_replace.right = to_replace.right, node.right
+
     """deletes node from the dictionary
 
     @type node: AVLNode
@@ -318,7 +335,9 @@ class AVLTree(object):
     """
     def delete(self, node):  # Assume node is a real node in the tree.
         if node.left.is_real_node() and node.right.is_real_node():
-            self.delete(self.successor(node))
+            to_replace = self.successor(node)
+            self.replace(to_replace, node)
+            self.delete(to_replace)
             return
         self.size -= 1
         if self.max_node == node:
@@ -484,11 +503,11 @@ def main():
     print(tree.insert(1, "ilai"))
     print(tree.insert(5, "yohnatan-"))
     print(tree.insert(3, "ilai3"))
-    # print(tree.insert(2, "ilai2"))
-    # print(tree.insert(10, "not ilai"))
-    # print(tree.insert(50, "not yohnatan-"))
-    # print(tree.insert(30, "not ilai3"))
-    # print(tree.insert(20, "not ilai2"))
+    print(tree.insert(2, "ilai2"))
+    print(tree.insert(10, "not ilai"))
+    print(tree.insert(50, "not yohnatan-"))
+    print(tree.insert(30, "not ilai3"))
+    print(tree.insert(20, "not ilai2"))
 
     """ Test: To Array """
     #   print(tree.avl_to_array())
