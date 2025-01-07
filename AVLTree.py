@@ -6,7 +6,7 @@
 # username2:ilaishoshani
 
 from math import log, sqrt
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 PHI = (1+sqrt(5))/2
 
@@ -207,7 +207,7 @@ class AVLTree(object):
             self.make_real(tree, key, val)
 
             # Update max node.
-            if key > self.max.key:
+            if self.max is None or key > self.max.key:
                 self.max = tree
             rotations = self.rebalance_after_insert(tree)
             self.size += 1  # New node added
@@ -238,12 +238,11 @@ class AVLTree(object):
         return self.insert_helper(self.root, key, val)
 
     def finger_search(self, key: int):
-        if self.root is None:
+        if self.root is None or not self.root.is_real_node():
             return None, 1
         max: AVLNode = self.max_node()
         curr_node: AVLNode = max
-        calc_size = log(PHI, key)
-        while curr_node.height < calc_size and curr_node != self.root:
+        while curr_node.key < key and curr_node != self.root:  # TODO: Mathematically this takes maximum log time.
             curr_node = curr_node.parent
 
         # Search for the node in the subtree and add the diff we traveled to the edge count.
@@ -263,21 +262,22 @@ class AVLTree(object):
     and h is the number of PROMOTE cases during the AVL rebalancing
     """
     def finger_insert(self, key, val):
-        if self.root is None:
+        if self.root is None or not self.root.is_real_node():
             self.max = self.root = self.make_real(AVLNode(), key, val)
             return self.root, 0, 0  # No edges or promotions done.
-        max: AVLNode = self.max_node()
-        curr_node: AVLNode = max
-        calc_size = log(PHI, key)
-        while curr_node.height < calc_size and curr_node != self.root:
+        curr_node: AVLNode = self.max_node()
+        max_height: int = curr_node.height
+        while curr_node.key < key and curr_node != self.root:
             curr_node = curr_node.parent
 
         # Insert the node and add the amount of edges we traveled to the edge count.
         x, e, h = self.insert_helper(curr_node, key, val)
-        return x, e + (curr_node.height - max.height), h
+        return x, e + (curr_node.height - max_height), h
 
     @staticmethod
-    def successor(node: AVLNode):
+    def successor(node: AVLNode):  # Assume node is not None or virtual (max node never has right son).
+        if node is None or not node.is_real_node():
+            return None
         if node.right.is_real_node():
             node = node.right
             while node.left.is_real_node():
@@ -294,6 +294,8 @@ class AVLTree(object):
 
     @staticmethod
     def predecessor(node: AVLNode):
+        if node is None or not node.is_real_node():
+            return None
         if node.left.is_real_node():
             node = node.left
             while node.right.is_real_node():
@@ -306,7 +308,7 @@ class AVLTree(object):
             if node.parent.left == node:
                 return node.parent
             else:
-                return None  # No successor found.
+                return None  # No predecessor found.
 
     def balance_deletion(self, node: AVLNode):
         right_difference = node.height - node.right.height
@@ -317,32 +319,31 @@ class AVLTree(object):
         left_right_difference = node.left.height - node.left.right.height
 
         if right_difference == 2 and left_difference == 2:
-            node.height -=1
+            node.height -= 1
         elif left_difference == 3 and right_difference == 1 and right_right_difference == 1 and right_left_difference == 1:
             node = self.left_rotate(node)
-            node.left.height-=1
-            node.height+=1
+            node.left.height -= 1
+            node.height += 1
         elif right_difference == 3 and left_difference == 1 and left_right_difference == 1 and left_left_difference == 1:
             node = self.right_rotate(node)
             node.right.height -= 1
-            node.height +=1
+            node.height += 1
         elif left_difference == 3 and right_difference == 1 and right_right_difference == 1 and right_left_difference == 2:
             node = self.left_rotate(node)
-            node.left.height-=2
+            node.left.height -= 2
         elif right_difference == 3 and left_difference == 1 and left_right_difference == 2 and left_left_difference == 1:
             node = self.right_rotate(node)
             node.right.height -= 2
         elif left_difference == 3 and right_difference == 1 and right_right_difference == 2 and right_left_difference == 1:
-            node  =self.right_then_left_rotate(node)
+            node = self.right_then_left_rotate(node)
         elif right_difference == 3 and left_difference == 1 and left_right_difference == 1 and left_left_difference == 2:
             node = self.left_then_right_rotate(node)
         if node.parent is not None:
             self.balance_deletion(node.parent)
         self.root = node
 
-
-
     def replace(self, to_replace: AVLNode, node: AVLNode):
+        # Assume to_replace isn't None or virtual.
         if to_replace.parent is not None:
             if to_replace.parent.right == to_replace:
                 to_replace.parent.right = node
@@ -358,6 +359,8 @@ class AVLTree(object):
         node.parent, to_replace.parent = to_replace.parent, node.parent
         node.left, to_replace.left = to_replace.left, node.left
         node.right, to_replace.right = to_replace.right, node.right
+
+
     """deletes node from the dictionary
 
     @type node: AVLNode
@@ -367,15 +370,23 @@ class AVLTree(object):
         if self.max == node:
             self.max = self.predecessor(self.max)
         if node.left.is_real_node() and node.right.is_real_node():
-            to_replace = self.successor(node)
+            to_replace = self.successor(node)  # We have a successor cause we have a right node.
             self.replace(to_replace, node)
-            self.delete(to_replace)
+            self.delete(node)
             return
+
         self.size -= 1
         if node == self.root:
             if node.left.is_real_node():
-                return node.left
-            return node.right
+                node.left.parent = None
+                self.root = node.left
+            elif node.right.is_real_node():
+                node.right.parent = None
+                self.root = node.right
+            else:
+                self.root = None
+            return
+
         if node.left.is_real_node():
             parent = node.parent
             if parent.right == node:
@@ -393,43 +404,35 @@ class AVLTree(object):
         If root has changed this function will change it.
         (Parent of something is null).
         """
-        self.balance_deletion(node)
+        self.balance_deletion(parent)
 
-    def get_size(self, subtree: AVLNode):
-        if subtree is None or not subtree.is_real_node():
-            return 0
-        return self.get_size(subtree.left) + self.get_size(subtree.right) + 1
-
-    def join_with_subtree(self, subtree: AVLNode, key: int, val: str):
+    def join_with_subtree(self, subtree: AVLNode, join_node: AVLNode):
+        # Assume subtree isn't None or virtual.
         if self.root is None:
             # TODO: Add key to subtree
             self.root = subtree
-            self.size = self.get_size(self.root)
             self.max = self.find_max()
-            return self
-        if not subtree.is_real_node():
-            self.insert(key, val)
             return self
 
         small_tree, big_tree = (subtree, self.root) if subtree.height < self.root.height else (self.root, subtree)
         curr_node = big_tree
-        if key <= big_tree.key:
+        if join_node.key <= big_tree.key:
             while curr_node.left.is_real_node() and curr_node.height > small_tree.height:
                 curr_node = curr_node.left
-            new_node = AVLNode(key, val)
-            new_node.right = curr_node.left
-            new_node.left = small_tree
-            new_node.height = max(new_node.left.height, new_node.right.height) + 1
-            curr_node.left = new_node
+            join_node.right = curr_node.left
+            join_node.left = small_tree
+            join_node.height = max(join_node.left.height, join_node.right.height) + 1
+            join_node.parent = curr_node
+            curr_node.left = join_node
             self.rebalance_after_insert(curr_node)
         else:
             while curr_node.right.is_real_node() and curr_node.height > small_tree.height:
                 curr_node = curr_node.right
-            new_node = AVLNode(key, val)
-            new_node.left = curr_node.right
-            new_node.right = small_tree
-            new_node.height = max(new_node.left.height, new_node.right.height) + 1
-            curr_node.right = new_node
+            join_node.left = curr_node.right
+            join_node.right = small_tree
+            join_node.height = max(join_node.left.height, join_node.right.height) + 1
+            join_node.parent = curr_node
+            curr_node.right = join_node
             self.rebalance_after_insert(curr_node)
         return big_tree
 
@@ -445,17 +448,18 @@ class AVLTree(object):
     or the opposite way
     """
     def join(self, tree2, key: int, val: str):
-        self.join_with_subtree(tree2.root, key, val)
+        new_size = self.size + tree2.size + 1
+        self.join_with_subtree(tree2.root, AVLNode(key, val))
         # Update Max Node
         if tree2.max is not None and (self.max is None or tree2.max.key > self.max.key):
             self.max = tree2.max
+        self.size = new_size
 
     def find_max(self):
         curr_node: AVLNode = self.root
 
-        # We assume we were not given a virt node.
-        if not curr_node.is_real_node():
-            return -1
+        if curr_node is None or not curr_node.is_real_node():
+            return None
         while curr_node.right.is_real_node():
             curr_node = curr_node.right
         return curr_node
@@ -476,23 +480,19 @@ class AVLTree(object):
         right_tree = AVLTree()
 
         if node.left is not None and node.left.is_real_node():
-            left_tree.join_with_subtree(node.left, node.key, node.value)
+            left_tree.join_with_subtree(node.left, node)
         if node.right is not None and node.right.is_real_node():
-            right_tree.join_with_subtree(node.right, node.key, node.value)
+            right_tree.join_with_subtree(node.right, node)
 
         while node is not self.root:
             parent: AVLNode = node.parent
-            if parent.left == node:  # Node is in left subtree
-                left_tree.join_with_subtree(parent.right, parent.key, parent.value)
-                if parent.key > node.key:
-                    left_tree.delete(parent)  # TODO: Check if comparison is deep
+            if parent.left == node:  # We went up right
+                right_tree.join_with_subtree(parent.right, parent)
             else:
-                right_tree.join_with_subtree(parent.left, parent.key, parent.value)
-                if parent.key < node.key:
-                    right_tree.delete(parent)  # TODO: Check if comparison is deep
+                left_tree.join_with_subtree(parent.left, parent)
             node = node.parent
-        left_tree.max = self.find_max()  # Update Max
-        right_tree.max = self.find_max()  # Update Max
+        left_tree.max = left_tree.find_max()    # Update Max
+        right_tree.max = right_tree.find_max()  # Update Max
         return left_tree, right_tree
 
     def avl_to_array_helper(self, tree: AVLNode, lst):
@@ -550,44 +550,44 @@ class AVLTree(object):
         else:
             self.nice_print_helper(self.root, "")
 
-    def visualize_tree(self):
-        def draw_node(node, x, y, dx, ax):
-            if not node.is_real_node():
-                # Draw virtual nodes as gray circles
-                ax.plot(x, y, "o", color="gray")
-                ax.text(x, y, "X", ha="center", va="center", color="white")
-                return
-
-            # Draw the current node as a blue circle
-            ax.plot(x, y, "o", color="blue", markersize=50)
-            ax.text(x, y, f"{node.key}\n{node.value}\nH:{node.height}",
-                    ha="center", va="center", color="white", fontsize=8)
-
-            # Draw left child
-            if node.left:
-                lx, ly = x - dx, y - 2
-                ax.plot([x, lx], [y, ly], "-", color="black")  # Line to left child
-                draw_node(node.left, lx, ly, dx / 2, ax)
-
-            # Draw right child
-            if node.right:
-                rx, ry = x + dx, y - 2
-                ax.plot([x, rx], [y, ry], "-", color="black")  # Line to right child
-                draw_node(node.right, rx, ry, dx / 2, ax)
-
-        if self.root is None or not self.root.is_real_node():
-            print("Empty Tree")
-            return
-
-        # Initialize plot
-        fig, ax = plt.subplots(figsize=(12, 8))
-        ax.axis("off")  # Turn off the axis
-
-        # Start drawing from the root
-        draw_node(self.root, x=0, y=0, dx=10, ax=ax)
-
-        # Show the plot
-        plt.show()
+    # def visualize_tree(self):
+    #     def draw_node(node, x, y, dx, ax):
+    #         if not node.is_real_node():
+    #             # Draw virtual nodes as gray circles
+    #             ax.plot(x, y, "o", color="gray")
+    #             ax.text(x, y, "X", ha="center", va="center", color="white")
+    #             return
+    #
+    #         # Draw the current node as a blue circle
+    #         ax.plot(x, y, "o", color="blue", markersize=50)
+    #         ax.text(x, y, f"{node.key}\n{node.value}\nH:{node.height}",
+    #                 ha="center", va="center", color="white", fontsize=8)
+    #
+    #         # Draw left child
+    #         if node.left:
+    #             lx, ly = x - dx, y - 2
+    #             ax.plot([x, lx], [y, ly], "-", color="black")  # Line to left child
+    #             draw_node(node.left, lx, ly, dx / 2, ax)
+    #
+    #         # Draw right child
+    #         if node.right:
+    #             rx, ry = x + dx, y - 2
+    #             ax.plot([x, rx], [y, ry], "-", color="black")  # Line to right child
+    #             draw_node(node.right, rx, ry, dx / 2, ax)
+    #
+    #     if self.root is None or not self.root.is_real_node():
+    #         print("Empty Tree")
+    #         return
+    #
+    #     # Initialize plot
+    #     fig, ax = plt.subplots(figsize=(12, 8))
+    #     ax.axis("off")  # Turn off the axis
+    #
+    #     # Start drawing from the root
+    #     draw_node(self.root, x=0, y=0, dx=10, ax=ax)
+    #
+    #     # Show the plot
+    #     plt.show()
 
     # Add to your existing class
     # self.visualize_tree = visualize_tree.__get__(self)
