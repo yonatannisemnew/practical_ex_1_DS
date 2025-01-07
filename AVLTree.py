@@ -43,7 +43,7 @@ class AVLNode(object):
         return self.left.height - self.right.height
 
     def leaf(self):
-        return not self.left.is_real_node() and not self.right.is_real_node
+        return not self.left.is_real_node() and not self.right.is_real_node()
 
     def __repr__(self):
         return f"Node[{self.key}, {self.value}]"
@@ -395,7 +395,6 @@ class AVLTree(object):
         """
         self.balance_deletion(node)
 
-    @staticmethod
     def get_size(self, subtree: AVLNode):
         if subtree is None or not subtree.is_real_node():
             return 0
@@ -412,7 +411,7 @@ class AVLTree(object):
             self.insert(key, val)
             return self
 
-        small_tree, big_tree = (subtree, self.root) if subtree.height < self.size else (self.root, subtree)
+        small_tree, big_tree = (subtree, self.root) if subtree.height < self.root.height else (self.root, subtree)
         curr_node = big_tree
         if key <= big_tree.key:
             while curr_node.left.is_real_node() and curr_node.height > small_tree.height:
@@ -420,6 +419,7 @@ class AVLTree(object):
             new_node = AVLNode(key, val)
             new_node.right = curr_node.left
             new_node.left = small_tree
+            new_node.height = max(new_node.left.height, new_node.right.height) + 1
             curr_node.left = new_node
             self.rebalance_after_insert(curr_node)
         else:
@@ -428,6 +428,7 @@ class AVLTree(object):
             new_node = AVLNode(key, val)
             new_node.left = curr_node.right
             new_node.right = small_tree
+            new_node.height = max(new_node.left.height, new_node.right.height) + 1
             curr_node.right = new_node
             self.rebalance_after_insert(curr_node)
         return big_tree
@@ -443,10 +444,11 @@ class AVLTree(object):
     @pre: all keys in self are smaller than key and all keys in tree2 are larger than key,
     or the opposite way
     """
-
     def join(self, tree2, key: int, val: str):
-        self.join_with_subtree(tree2, key, val)
-        self.max = max(self.max, tree2.max, key)
+        self.join_with_subtree(tree2.root, key, val)
+        # Update Max Node
+        if tree2.max is not None and (self.max is None or tree2.max.key > self.max.key):
+            self.max = tree2.max
 
     def find_max(self):
         curr_node: AVLNode = self.root
@@ -468,19 +470,26 @@ class AVLTree(object):
     dictionary smaller than node.key, and right is an AVLTree representing the keys in the 
     dictionary larger than node.key.
     """
-
     def split(self, node):
         # TODO: Check if this is the best solution in terms of complexity.
         left_tree = AVLTree()
         right_tree = AVLTree()
 
-        left_tree.join_with_subtree(node.left, node.key, node.value)
-        right_tree.join_with_subtree(node.left, node.key, node.value)
+        if node.left is not None and node.left.is_real_node():
+            left_tree.join_with_subtree(node.left, node.key, node.value)
+        if node.right is not None and node.right.is_real_node():
+            right_tree.join_with_subtree(node.right, node.key, node.value)
+
         while node is not self.root:
-            if node.parent.left != node:  # We have lower stuff to add.
-                left_tree.join_with_subtree(node.left, node.key, node.value)
-            elif node.parent.right != node:  # We have higher stuff to add.
-                right_tree.join_with_subtree(node.left, node.key, node.value)
+            parent: AVLNode = node.parent
+            if parent.left == node:  # Node is in left subtree
+                left_tree.join_with_subtree(parent.right, parent.key, parent.value)
+                if parent.key > node.key:
+                    left_tree.delete(parent)  # TODO: Check if comparison is deep
+            else:
+                right_tree.join_with_subtree(parent.left, parent.key, parent.value)
+                if parent.key < node.key:
+                    right_tree.delete(parent)  # TODO: Check if comparison is deep
             node = node.parent
         left_tree.max = self.find_max()  # Update Max
         right_tree.max = self.find_max()  # Update Max
