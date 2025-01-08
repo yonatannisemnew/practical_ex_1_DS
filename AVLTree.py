@@ -6,7 +6,7 @@
 # username2:ilaishoshani
 
 from math import log, sqrt
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 PHI = (1+sqrt(5))/2
 
@@ -98,8 +98,7 @@ class AVLTree(object):
         root.left = new_root.right
 
         # Update parent of the subtree being rotated
-        if new_root.right and new_root.right.is_real_node():
-            new_root.right.parent = root
+        new_root.right.parent = root
 
         # Perform rotation
         new_root.right = root
@@ -115,8 +114,8 @@ class AVLTree(object):
                 parent_of_root.left = new_root
             else:
                 parent_of_root.right = new_root
-        root.height = max(root.left.height if root.left else -1, root.right.height if root.right else -1) + 1
-        new_root.height = max(new_root.left.height if new_root.left else -1, root.height) + 1
+        root.height = max(root.left.height, root.right.height) + 1
+        new_root.height = max(new_root.left.height, new_root.right.height) + 1
         return new_root
 
     def left_rotate(self, root):
@@ -156,29 +155,18 @@ class AVLTree(object):
         if node.parent is None:
             return 0
 
-        print("Rebalance?", node.parent.height == node.height,
-                            node.parent.balance_factor() == 2,
-                            node.parent.balance_factor() == -2)
-
-        if node.parent.balance_factor() == 2:  # Left subtree too large
+        # TODO: Maybe we should prevent the case of >2 in join
+        if node.parent.balance_factor() >= 2:  # Left subtree too large
             if node.balance_factor() > 0:  # Right subtree is pretty small, can be added a node.
-                node.parent.height -= 1
                 self.right_rotate(node.parent)
             else:
-                node.parent.height -= 1
-                node.height -= 1
-                node.right.height += 1
                 self.left_then_right_rotate(node.parent)
             return 1
-        if node.parent.balance_factor() == -2:  # Right subtree too large
+        if node.parent.balance_factor() <= -2:  # Right subtree too large
             # For Visualising, do:  self.visualize_tree()
             if node.balance_factor() < 0:  # Left subtree is pretty small, can be added a node.
-                node.parent.height -= 1
                 self.left_rotate(node.parent)
             else:
-                node.parent.height -= 1
-                node.height -= 1
-                node.left.height += 1
                 self.right_then_left_rotate(node.parent)
             return 1
         if node.parent.height == node.height:
@@ -406,35 +394,53 @@ class AVLTree(object):
         """
         self.balance_deletion(parent)
 
-    def join_with_subtree(self, subtree: AVLNode, join_node: AVLNode):
+    def join_with_subtree(self, subtree: AVLNode, key: int, val: str):
         # Assume subtree isn't None or virtual.
         if self.root is None:
-            # TODO: Add key to subtree
-            self.root = subtree
-            self.max = self.find_max()
-            return self
+            self.root = self.make_vnode(None)
 
-        small_tree, big_tree = (subtree, self.root) if subtree.height < self.root.height else (self.root, subtree)
+        self_is_smaller = subtree.height > self.root.height
+        small_tree, big_tree = (self.root, subtree) if self_is_smaller else (subtree, self.root)
         curr_node = big_tree
+        join_node = AVLNode(key, val)
         if join_node.key <= big_tree.key:
+            print("Longer tree is also bigger", join_node, big_tree)
             while curr_node.left.is_real_node() and curr_node.height > small_tree.height:
                 curr_node = curr_node.left
+            if curr_node.parent is not None:
+                curr_node = curr_node.parent
             join_node.right = curr_node.left
-            join_node.left = small_tree
-            join_node.height = max(join_node.left.height, join_node.right.height) + 1
-            join_node.parent = curr_node
+            curr_node.left.parent = join_node
+
             curr_node.left = join_node
-            self.rebalance_after_insert(curr_node)
+            join_node.parent = curr_node
+
+            join_node.left = small_tree
+            small_tree.parent = join_node
+
+            join_node.height = max(join_node.left.height, join_node.right.height) + 1
+            curr_node.height = curr_node.right.height + 1
+            # self.rebalance_after_insert(join_node)  # May help with edge cases
         else:
+            print("Longer tree is smaller")
             while curr_node.right.is_real_node() and curr_node.height > small_tree.height:
                 curr_node = curr_node.right
+            if curr_node.parent is not None:
+                curr_node = curr_node.parent
             join_node.left = curr_node.right
-            join_node.right = small_tree
-            join_node.height = max(join_node.left.height, join_node.right.height) + 1
-            join_node.parent = curr_node
+            curr_node.right.parent = join_node
+
             curr_node.right = join_node
-            self.rebalance_after_insert(curr_node)
-        return big_tree
+            join_node.parent = curr_node
+
+            join_node.right = small_tree
+            small_tree.parent = join_node
+
+            join_node.height = max(join_node.left.height, join_node.right.height) + 1
+            curr_node.height = curr_node.left.height + 1
+            # self.rebalance_after_insert(join_node)  # May help with edge cases
+        self.root = big_tree
+        self.rebalance_after_insert(join_node)
 
     """joins self with item and another AVLTree
 
@@ -449,7 +455,7 @@ class AVLTree(object):
     """
     def join(self, tree2, key: int, val: str):
         new_size = self.size + tree2.size + 1
-        self.join_with_subtree(tree2.root, AVLNode(key, val))
+        self.join_with_subtree(tree2.root, key, val)
         # Update Max Node
         if tree2.max is not None and (self.max is None or tree2.max.key > self.max.key):
             self.max = tree2.max
@@ -480,16 +486,22 @@ class AVLTree(object):
         right_tree = AVLTree()
 
         if node.left is not None and node.left.is_real_node():
-            left_tree.join_with_subtree(node.left, node)
+            node.left.parent = None
+            left_tree.root = node.left
         if node.right is not None and node.right.is_real_node():
-            right_tree.join_with_subtree(node.right, node)
+            node.right.parent = None
+            right_tree.root = node.right
 
         while node is not self.root:
             parent: AVLNode = node.parent
+            if parent is None:
+                print("Why?")
             if parent.left == node:  # We went up right
-                right_tree.join_with_subtree(parent.right, parent)
+                parent.right.parent = None
+                right_tree.join_with_subtree(parent.right, parent.key, parent.value)
             else:
-                left_tree.join_with_subtree(parent.left, parent)
+                parent.left.parent = None
+                left_tree.join_with_subtree(parent.left, parent.key, parent.value)
             node = node.parent
         left_tree.max = left_tree.find_max()    # Update Max
         right_tree.max = right_tree.find_max()  # Update Max
@@ -550,44 +562,44 @@ class AVLTree(object):
         else:
             self.nice_print_helper(self.root, "")
 
-    # def visualize_tree(self):
-    #     def draw_node(node, x, y, dx, ax):
-    #         if not node.is_real_node():
-    #             # Draw virtual nodes as gray circles
-    #             ax.plot(x, y, "o", color="gray")
-    #             ax.text(x, y, "X", ha="center", va="center", color="white")
-    #             return
-    #
-    #         # Draw the current node as a blue circle
-    #         ax.plot(x, y, "o", color="blue", markersize=50)
-    #         ax.text(x, y, f"{node.key}\n{node.value}\nH:{node.height}",
-    #                 ha="center", va="center", color="white", fontsize=8)
-    #
-    #         # Draw left child
-    #         if node.left:
-    #             lx, ly = x - dx, y - 2
-    #             ax.plot([x, lx], [y, ly], "-", color="black")  # Line to left child
-    #             draw_node(node.left, lx, ly, dx / 2, ax)
-    #
-    #         # Draw right child
-    #         if node.right:
-    #             rx, ry = x + dx, y - 2
-    #             ax.plot([x, rx], [y, ry], "-", color="black")  # Line to right child
-    #             draw_node(node.right, rx, ry, dx / 2, ax)
-    #
-    #     if self.root is None or not self.root.is_real_node():
-    #         print("Empty Tree")
-    #         return
-    #
-    #     # Initialize plot
-    #     fig, ax = plt.subplots(figsize=(12, 8))
-    #     ax.axis("off")  # Turn off the axis
-    #
-    #     # Start drawing from the root
-    #     draw_node(self.root, x=0, y=0, dx=10, ax=ax)
-    #
-    #     # Show the plot
-    #     plt.show()
+    def visualize_tree(self):
+        def draw_node(node, x, y, dx, ax):
+            if not node.is_real_node():
+                # Draw virtual nodes as gray circles
+                ax.plot(x, y, "o", color="gray")
+                ax.text(x, y, "X", ha="center", va="center", color="white")
+                return
+
+            # Draw the current node as a blue circle
+            ax.plot(x, y, "o", color="blue", markersize=50)
+            ax.text(x, y, f"{node.key}\n{node.value}\nH:{node.height}",
+                    ha="center", va="center", color="white", fontsize=8)
+
+            # Draw left child
+            if node.left:
+                lx, ly = x - dx, y - 2
+                ax.plot([x, lx], [y, ly], "-", color="black")  # Line to left child
+                draw_node(node.left, lx, ly, dx / 2, ax)
+
+            # Draw right child
+            if node.right:
+                rx, ry = x + dx, y - 2
+                ax.plot([x, rx], [y, ry], "-", color="black")  # Line to right child
+                draw_node(node.right, rx, ry, dx / 2, ax)
+
+        if self.root is None or not self.root.is_real_node():
+            print("Empty Tree")
+            return
+
+        # Initialize plot
+        fig, ax = plt.subplots(figsize=(12, 8))
+        ax.axis("off")  # Turn off the axis
+
+        # Start drawing from the root
+        draw_node(self.root, x=0, y=0, dx=10, ax=ax)
+
+        # Show the plot
+        plt.show()
 
     # Add to your existing class
     # self.visualize_tree = visualize_tree.__get__(self)
@@ -609,13 +621,37 @@ def main():
     """ Test: To Array """
     #   print(tree.avl_to_array())
 
+    tree2 = AVLTree()
+
+    """ Test: Insert """
+    print(tree2.insert(549, "addition"))
+    print(tree2.insert(586, "algo"))
+    print(tree2.insert(553, "52"))
+    print(tree2.insert(111, "hi"))
+    print(tree2.insert(222, "hi2"))
+    print(tree2.insert(333, "hello"))
+    print(tree2.insert(444, "hello2"))
+    print(tree2.insert(555, "hello3"))
+
+    # tree.visualize_tree()
+    # tree2.visualize_tree()
+    tree2.join(tree, 55, "VAL")
+
+    print("Let's Visualize! Shurely nothing can go wrong!!!")
+    tree2.nice_print()
+    tree2.visualize_tree()
+
+    # """ Test: Split """
+    # tree.visualize_tree()
+
     """ Test: Search """
-    node10, edges = tree.search(10)
+    node10, edges = tree2.search(10)
     print("Node #10:", node10, edges)
 
-    """ Test: Split """
-    left, right = tree.split(node10)
+    left, right = tree2.split(node10)
     print("\nLeft", left.avl_to_array(), "\nRight", right.avl_to_array(), sep="\n")
+    left.visualize_tree()
+    right.visualize_tree()
 
 
 main()
